@@ -4,5 +4,6 @@ env/
 .venv
 venv/
 ENV/
-ven
+.ven
+ven/
 .idea
