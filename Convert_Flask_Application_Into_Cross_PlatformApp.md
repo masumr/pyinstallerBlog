@@ -126,4 +126,52 @@ __PyInstaller__ is complicated under the hood and will create a lot of output. S
   
   The executable to run is __dist/cheque-printer/cheque-printer__ or __dist/cheque-printer/cheque-printer.exe__ if you’re on Windows.
 
+pyInstaller creates a temp folder and the name of that folder is __MEIPASS__. Generally a new e.g. __ME<Random_Value>__ file created at the time of each time we execute the file and previous __MEIPASS__ file deleted because of it’s volatile memory. So the previous data is removed from storage as we store our db and other files in the that temp folder using pyinstallers `--add-data` property, but we need to store previous data for the persistence. For this reason we create a hidden folder in the system's home directory and store data in this folder. But initially sqlite database file does not exist in this hidden folder. So at execution time we create a hidden folder in the system home directory when we execute the file and we have to copy that fresh db along with other files from the temp folder and save to the hidden folder. The code of copying and saving this db along with the other files given below: 
 
+```python
+    import os, shutil
+    from pathlib import Path
+    
+    APP_NAME = "Our_App"
+    HOME_DIR = Path.home()
+    APP_DIR = HOME_DIR / f".{APP_NAME.lower()}"
+    if not APP_DIR.exists():  ## checking if our persistence hidden filder exists or not
+       os.mkdir(APP_DIR)  ## create the hidden folder
+    data = get_resources_path() / data ## searching files in the temp folder
+    if not (APP_DIR /  data).exists():  ## checking if our persistence files already in the hidden directory or not
+       try:
+           shutil.copy(data, APP_DIR)
+       except Exception as e:
+           log.exception(e)mport os, shutil
+    from pathlib import Path
+    
+    APP_NAME = "Our_App"
+    HOME_DIR = Path.home()
+    APP_DIR = HOME_DIR / f".{APP_NAME.lower()}"
+    if not APP_DIR.exists():  ## checking if our persistence hidden filder exists or not
+       os.mkdir(APP_DIR)  ## create the hidden folder
+    data = get_resources_path() / data ## searching files in the temp folder
+    if not (APP_DIR /  data).exists():  ## checking if our persistence files already in the hidden directory or not
+       try:
+           shutil.copy(data, APP_DIR)
+       except Exception as e:
+           log.exception(e)
+```
+Get resources path function to find the __MEIPASS__ folder path link from where we can copy fresh data and can store to the hidden folder.
+```python
+import pathlib
+import sys
+def get_resources_path(relative_path="."):
+    
+    rel_path = pathlib.Path(relative_path)
+    prod_base_path = pathlib.Path(__file__).resolve().parent.parent
+    
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception as e:
+        base_path = getattr(sys, "_MEIPASS", prod_base_path)
+
+    return base_path / rel_path
+
+```
